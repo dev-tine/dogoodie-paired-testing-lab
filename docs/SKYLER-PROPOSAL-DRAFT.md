@@ -1,4 +1,7 @@
 # DoGoodie Paired Testing Lab
+
+> **Phase 0 update:** This proposal predates the Supabase foundation. Internal authentication, database roles, study membership, RLS, and private Storage policies now exist as foundation code, while all workflow records and evidence interactions described here remain synthetic and local until the builder phases migrate them.
+
 ## Preliminary Product Concept and Prototype Proposal
 
 **Status:** Draft for discussion  

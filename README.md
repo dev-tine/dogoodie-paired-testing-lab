@@ -25,7 +25,7 @@ The prototype does **not** determine discrimination, causation, intent, liabilit
 - Expert Reviewers
 - Law-Firm Viewers
 
-Authentication and authorization are simulated through a persistent “View as” role switcher. They are not production security controls.
+Phase 0 adds internal Supabase email/password authentication, database-backed profiles and roles, study membership, Row Level Security, and a private evidence-storage foundation. The synthetic workflow screens still use fixtures and Zustand until the builder phases migrate them deliberately. The former “View as” selector is preserved as reference code but is hidden and never controls database authorization.
 
 ## Technology stack
 
@@ -38,6 +38,7 @@ Authentication and authorization are simulated through a persistent “View as�
 - Zustand with hydration-aware local persistence
 - date-fns
 - Zod and React Hook Form
+- Supabase Auth, Postgres, Storage, `@supabase/ssr`, and `@supabase/supabase-js`
 - Vitest, React Testing Library, and jsdom
 - ESLint
 
@@ -48,7 +49,9 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The root route redirects to `/paired-testing-demo`.
+Before sign-in can succeed, copy `.env.example` to an untracked `.env.local` and add the Supabase project URL and publishable key. Apply the migrations under `supabase/migrations` using [docs/SUPABASE_SETUP.md](./docs/SUPABASE_SETUP.md).
+
+Open `http://localhost:3000`. The root route redirects through the protected `/paired-testing-demo` area; unauthenticated users are sent to `/login`.
 
 Verification and production commands:
 
@@ -66,6 +69,7 @@ npm run start
 | Route | Purpose |
 | --- | --- |
 | `/` | Redirect to the product overview |
+| `/login` | Internal Supabase email/password sign-in |
 | `/paired-testing-demo` | Product overview and active study |
 | `/paired-testing-demo/dashboard` | Study metrics, charts, search, filtering, and pair queue |
 | `/paired-testing-demo/protocol` | Active protocol, thresholds, exclusions, and version history |
@@ -83,6 +87,7 @@ npm run start
 ```text
 src/
   app/                         App Router routes, root theme, print CSS
+  app/login/                   Internal email/password login
   components/
     ui/                        Official shadcn-generated primitives
     paired-testing/            Feature shell, screens, and shared components
@@ -90,24 +95,33 @@ src/
   data/                        Deterministic typed synthetic fixtures
   hooks/                       Hydration-aware client hooks
   lib/
+    auth/                      Safe redirects and server authorization helpers
     calculations/              Price, distance, time, and dashboard metrics
+    data/                      Typed Supabase data-access boundary
+    supabase/                  Browser, server, and Proxy clients
     validation/                Pair engine and Zod form schemas
     exports/                   CSV and JSON manifest generation
     formatting/                Currency, timestamp, and file-size formatting
   store/                       Zustand demonstration state and actions
-  tests/                       Calculation, validation, state, form, and export tests
-  types/                       Domain model
+  tests/                       Auth, calculation, validation, state, form, and export tests
+  types/                       Prototype and generated-compatible database types
+  proxy.ts                     Next.js 16 session refresh and optimistic redirects
+supabase/
+  migrations/                  Ordered schema, RLS, and private Storage migrations
+  config.toml                  Local Supabase configuration with signup disabled
 ```
 
 ## Synthetic-data policy
 
 All initial testers, prices, timestamps, coordinates, devices, review identities, evidence records, hashes, events, and report values are fictional. Fixtures use stable IDs and absolute ISO timestamps. They do not use `Date.now()`, `Math.random()`, or random UUIDs. Browser time is used only after user interaction, such as creating an assignment or making a review decision.
 
-Local evidence selectors retain browser `File` objects only in component memory. File contents, paths, and Blob URLs are not persisted or transmitted. The application has no external APIs, remote upload, analytics, database, cloud storage, rideshare integration, scraping, or background location collection.
+Local evidence selectors retain browser `File` objects only in component memory. File contents, paths, and Blob URLs are not persisted or transmitted. Supabase is now integrated for authentication and provides a database/storage foundation, but the synthetic workflow does not yet write fixtures, submissions, or evidence to it. There are still no live rideshare APIs, remote evidence uploads, analytics, scraping, or background location collection.
 
 ## Global state behavior
 
 `src/store/paired-testing-demo.store.ts` initializes from deterministic fixtures and persists appropriate demonstration state with Zustand. Persistence uses `skipHydration` and a client-side hydration hook, so server rendering never reads `localStorage`.
+
+This local store is not an authorization source. Real identity, activation, global role, and future study access come from Supabase and are enforced server-side and by RLS.
 
 Persisted state includes the selected role, assignments, submissions, pairs, reviewer decisions, evidence metadata, activity events, local counter, and tester draft. Raw file contents and sensitive browser paths are not persisted.
 
@@ -178,9 +192,11 @@ To switch to A4, change the `@page` rule in `src/app/globals.css` and the config
 
 ## Features intentionally excluded
 
-- Production authentication, authorization, and multi-tenancy
+- Public registration and self-service account creation
+- Production administrative UI for account activation, roles, and memberships
+- Database migration of the existing synthetic fixture workflow
 - Real testers, clients, experts, law firms, and personal information
-- Production database, file storage, and evidence uploads
+- Database-backed prototype workflows and production evidence uploads
 - Live rideshare APIs, quote automation, scraping, and credentials
 - Real GPS tracking, IP collection, fingerprinting, or device monitoring
 - Cryptographic signing, immutable audit infrastructure, or chain-of-custody guarantees
@@ -190,7 +206,7 @@ To switch to A4, change the `@page` rule in `src/app/globals.css` and the config
 ## Known limitations
 
 - This is an in-browser MVP; state can be edited or cleared and is not tamper-proof.
-- Permissions are presentation logic, not security boundaries.
+- Supabase authorization protects future database/storage records, while current fixture interactions remain local demonstration behavior.
 - Selected evidence files are not restored after navigation or reload.
 - Initial report timestamps are fixed fixture values; generated manifests use client interaction time.
 - No real mobile devices, assistive technologies, external file formats, or expert workflows have been field-validated.
@@ -205,7 +221,6 @@ To switch to A4, change the `@page` rule in `src/app/globals.css` and the config
 4. Define role permissions, separation of duties, escalation, corrections, and reviewer sign-off.
 5. Define report, exhibit, manifest, and downstream analysis formats.
 6. Obtain statistical methodology before adding inferential analysis.
-7. Design production security, authentication, authorization, encryption, storage, backups, retention, audit architecture, privacy controls, and incident response.
+7. Validate and operationalize the Phase 0 security foundation, then design encryption, backups, retention, audit architecture, privacy controls, and incident response.
 
 See [ASSUMPTIONS.md](./ASSUMPTIONS.md) for the explicit unverified assumptions.
-

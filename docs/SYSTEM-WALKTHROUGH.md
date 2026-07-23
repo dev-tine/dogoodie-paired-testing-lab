@@ -2,6 +2,8 @@
 
 This document explains the application as it is currently implemented. It is written for a project manager with an IT background, not for a software developer. File and function references are included so that each statement can be traced to the source.
 
+> **Phase 0 update:** This walkthrough primarily documents the original fixture/Zustand prototype. Supabase authentication, database roles, study membership, RLS, and a private Storage foundation now wrap that prototype. The old role switcher is hidden and no longer describes authorization. See `AUTH_DATABASE_FOUNDATION.md` and `SUPABASE_SETUP.md` for the current security architecture and setup.
+
 > **Prototype boundary:** Everything in the initial study is synthetic. The current rules, evidence requirements, workflow, roles, and legal terminology are preliminary assumptions. The application does not prove discrimination, causation, liability, scientific validity, or legal admissibility.
 
 ## Part 1: Beginner-Friendly System Explanation

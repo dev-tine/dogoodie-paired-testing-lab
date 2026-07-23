@@ -1,5 +1,7 @@
 # DoGoodie Paired Testing Lab: 8–12 Minute Demonstration Script
 
+> **Phase 0 update:** This script was written for the original fixture/Zustand prototype. The application now requires an internal Supabase login and displays the authenticated database role; the former “View as” role selector is hidden. Statements below that say authentication or a database does not exist describe the original prototype workflow, not the new security foundation.
+
 ## Before the meeting
 
 1. Start the application with `npm run dev`.

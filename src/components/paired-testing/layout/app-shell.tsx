@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, ClipboardCheck, Columns2, FileArchive, FileText, FlaskConical, History,
-  Home, LayoutDashboard, Menu, RefreshCcw, ShieldCheck, Users,
+  Home, LayoutDashboard, LogOut, Menu, RefreshCcw, ShieldCheck, Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { signOutAction } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader,
@@ -22,7 +24,7 @@ import type { NavigationItem, Role } from "@/types/paired-testing-demo.types";
 
 const icons = { Activity, ClipboardCheck, Columns2, FileArchive, FileText, FlaskConical, History, Home, LayoutDashboard, Users };
 
-function RoleSwitcher({ className }: { className?: string }) {
+export function DemoRoleSwitcher({ className }: { className?: string }) {
   const hydrated = useHydrated();
   const role = useDemoStore((state) => state.role);
   const setRole = useDemoStore((state) => state.setRole);
@@ -37,6 +39,45 @@ function RoleSwitcher({ className }: { className?: string }) {
           {Object.entries(demoConfig.roles).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+export interface AppShellUser {
+  email: string;
+  displayName: string | null;
+  role: "admin" | "test_coordinator" | "tester" | "expert_reviewer" | "law_firm_viewer";
+}
+
+const roleLabels: Record<AppShellUser["role"], string> = {
+  admin: "Administrator",
+  test_coordinator: "Test Coordinator",
+  tester: "Tester",
+  expert_reviewer: "Expert Reviewer",
+  law_firm_viewer: "Law-Firm Viewer",
+};
+
+function AccountPanel({ user, compact = false }: { user: AppShellUser; compact?: boolean }) {
+  return (
+    <div className={cn(!compact && "rounded-lg border border-border/80 bg-secondary/35 p-3")}>
+      {!compact ? (
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium text-foreground">{user.displayName || user.email}</p>
+          {user.displayName ? <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{user.email}</p> : null}
+          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-primary">{roleLabels[user.role]}</p>
+        </div>
+      ) : null}
+      <form action={signOutAction} className={cn(!compact && "mt-3")}>
+        <Button
+          type="submit"
+          variant="ghost"
+          size={compact ? "icon-sm" : "sm"}
+          className={cn("text-muted-foreground hover:text-foreground", !compact && "w-full justify-start")}
+        >
+          <LogOut className="size-3.5" />
+          {!compact ? "Sign out" : <span className="sr-only">Sign out</span>}
+        </Button>
+      </form>
     </div>
   );
 }
@@ -113,8 +154,25 @@ function Brand() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, user }: { children: React.ReactNode; user: AppShellUser }) {
   const pathname = usePathname();
+  const previewRole = useDemoStore((state) => state.role);
+  const setPreviewRole = useDemoStore((state) => state.setRole);
+  const databaseRoleToPreviewRole: Record<AppShellUser["role"], Role> = {
+    admin: "expert_reviewer",
+    test_coordinator: "coordinator",
+    tester: "tester",
+    expert_reviewer: "expert_reviewer",
+    law_firm_viewer: "law_firm_viewer",
+  };
+  const expectedPreviewRole = databaseRoleToPreviewRole[user.role];
+
+  useEffect(() => {
+    // This keeps legacy fixture-only UI affordances aligned with the real role.
+    // Database authorization remains enforced exclusively by server checks/RLS.
+    if (previewRole !== expectedPreviewRole) setPreviewRole(expectedPreviewRole);
+  }, [expectedPreviewRole, previewRole, setPreviewRole]);
+
   const current = demoConfig.navigation.find((item) =>
     item.href === "/paired-testing-demo" ? pathname === item.href : pathname.startsWith(item.href));
   return (
@@ -131,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="mt-5 flex-1 overflow-y-auto"><Navigation /></div>
         <div className="space-y-3 border-t border-border/70 pt-4">
-          <RoleSwitcher />
+          <AccountPanel user={user} />
           <ResetDemoDialog />
           <div className="flex items-center justify-between px-2 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
             <span>{demoConfig.product.badge}</span><span>{demoConfig.product.version}</span>
@@ -150,7 +208,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SheetHeader className="px-0 pt-0"><SheetTitle className="sr-only">Application navigation</SheetTitle></SheetHeader>
                 <Brand />
                 <div className="mt-6"><Navigation /></div>
-                <div className="mt-6 border-t border-border pt-5"><RoleSwitcher /></div>
+                <div className="mt-6 border-t border-border pt-5"><AccountPanel user={user} /></div>
               </SheetContent>
             </Sheet>
             <div>
@@ -160,8 +218,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden rounded-md border border-teal-300/20 bg-teal-300/[0.06] px-2.5 py-1 text-[10px] font-medium text-teal-200 sm:inline-flex">Synthetic data</span>
-            <div className="hidden xl:block"><RoleSwitcher className="min-w-[190px]" /></div>
+            <span className="hidden max-w-52 truncate text-[11px] text-muted-foreground xl:inline">{user.displayName || user.email} · {roleLabels[user.role]}</span>
             <ResetDemoDialog compact />
+            <AccountPanel user={user} compact />
           </div>
         </header>
         <main id="main-content" className="box-border min-w-0 w-full max-w-[1600px] overflow-x-hidden p-4 sm:p-6 lg:mx-auto lg:p-7">
